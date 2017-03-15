@@ -1,0 +1,51 @@
+Class gravity centers before standardisation: 
+	1.0000	
+	2.0000	
+	3.0000	
+
+Class gravity centers after standardisation: 
+	-1.2247	
+	0.0000	
+	1.2247	
+
+Weights without included standardisation: 
+	-2.4495	
+	0.0000	
+	2.4495	
+
+Weights with included standardisation: 
+	-3.0000	
+	0.0000	
+	3.0000	
+
+Results of test:
+Obj.nr,		True class,		Assigned class
+	0				1				1
+	1				2				2
+	2				3				3
+	3				1				1
+	4				2				2
+	5				3				3
+
+Error rate:	0.0000%
+
+Confusion matrix R: 
+	0		1		2		3	
+	1		2		0		0	
+	2		0		2		0	
+	3		0		0		2	
+
+
+Confusion matrix P: 
+	0.0000		1.0000		2.0000		3.0000	
+	1.0000		100.0000		0.0000		0.0000	
+	2.0000		0.0000		100.0000		0.0000	
+	3.0000		0.0000		0.0000		100.0000	
+
+
+Confidence matrix Q: 
+	0.0000		1.0000		2.0000		3.0000	
+	1.0000		100.0000		0.0000		0.0000	
+	2.0000		0.0000		100.0000		0.0000	
+	3.0000		0.0000		0.0000		100.0000	
+
