@@ -2,4 +2,5 @@
 5 ways to train your computer to classify your stuff :)
 
 TO DO:
-any kind of visualization of high dimentional data
+- Write a short description of each algorithm pros and cons
+- any kind of visualization of high dimentional data
