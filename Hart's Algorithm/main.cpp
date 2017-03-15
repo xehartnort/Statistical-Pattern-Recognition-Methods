@@ -10,24 +10,20 @@
 using namespace std;
 
 template <class T>
-ostream& operator<<(ostream& os, const vector<vector<T> > &v)
-{
-  for (int i = 0; i < v.size(); ++i)
-  {
-    for (int j = 0; j < v[i].size(); ++j)
-    {
-      os << "\t" << v[i][j] << "\t";
-    }  
-    os << endl;
-  }
-  return os;
-}
-template <class T>
 ostream& operator<<(ostream& os, const vector<T> &v)
 {
   for (int i = 0; i < v.size(); ++i)
   {
     os << "\t" << v[i] << "\t";
+  }
+  return os;
+}
+template <class T>
+ostream& operator<<(ostream& os, const vector<vector<T> > &v)
+{
+  for (int i = 0; i < v.size(); ++i)
+  {
+    os << v[i] << endl;
   }
   return os;
 }
@@ -146,74 +142,61 @@ T reduce(const vector<T> & point)
   return sum;
 }
 template <class T>
-double dist(const vector<T> &v1, const vector<T> &v2)
+inline double dist(const vector<T> &v1, const vector<T> &v2)
 {
   return sqrt(reduce( (v1-v2)*(v1-v2) ));
 }
-class OverlappingClassifier
+class HartAlgorithm
 {
 private:
   vector<double> std;  //
   vector<double> mean; // for standarization purposes
-  unsigned int classes;
-  vector<double> max_radius;
-  vector<pair <int, vector<double> > > std_train_objects;
+  vector<pair <int, vector<double> > > reduced_train_objects;
 public:
-  OverlappingClassifier(vector<pair<int, vector<double> > > train_objects, unsigned int classes)
+  HartAlgorithm(vector<pair<int, vector<double> > > train_objects)
   {
-    this->classes = classes;
     this->mean = multidimensionalMean(train_objects);
     this->std = multidimensionalStd(train_objects);
-    vector<vector<vector<double> > > tmp_class_points(classes+1); // assum class 0 is empty
-    // this->std_train_objects = train_objects;
-    vector<double> tmp;
-    for (const pair<int, vector<double> > &it : train_objects)
+    vector<pair <int, vector<double> > > std_train_objects;
+    for (const pair<int, vector<double> > &p : train_objects)
     {
-      tmp = (it.second - mean)/std;
-      this->std_train_objects.push_back( make_pair(it.first, tmp) );
-      tmp_class_points[ it.first ].push_back( tmp );
-      // tmp_class_points[ it.first ].push_back( it.second );
+      std_train_objects.push_back( make_pair(p.first, (p.second - mean)/std) );
     }
-    double max, tmp_dist;
-    this->max_radius.resize(classes+1); // class 0 is assumed empty
-    for (int i = 1; i < classes+1; ++i)  // class 0 is assumed empty
-    {
-      max = 0;
-      for(int j = 0; j < tmp_class_points[i].size(); ++j)
+    vector<double> zeros( std_train_objects.begin()->second.size(),0 );
+    sort(std_train_objects.begin(), std_train_objects.end(), 
+      [&zeros](const pair<int,vector<double> > &p1, const pair<int,vector<double> > &p2)
       {
-        for (int k = 0; k < j; ++k)
+        return dist(p1.second, zeros) < dist(p2.second, zeros);
+    });
+    // gen reduced set
+    reduced_train_objects.push_back( *std_train_objects.begin() );
+    std_train_objects.erase( std_train_objects.begin() );
+    for (const pair<int, vector<double> > p : std_train_objects)
+    {
+      // está el más cercano a "p" en el reduced set con la misma clasificación que "p"?????
+      // ordenamos el reduced set por cercanía a "p"
+      sort(reduced_train_objects.begin(), reduced_train_objects.end(), 
+        [&p](const pair<int,vector<double> > &p1, const pair<int,vector<double> > &p2)
         {
-          tmp_dist = dist(tmp_class_points[i][j], tmp_class_points[i][k]);
-          // cout << "class " << i << " " << tmp_dist << endl;
-          if(tmp_dist >= max)
-          {
-            max = tmp_dist;
-          }
-        }
+          return dist(p1.second, p.second) < dist(p2.second, p.second);
+      });
+      // si la clase del más cercano del reduced set es distinta a la clase de "p", añadimos "p" al reduced set
+      if( reduced_train_objects.begin()->first != p.first )
+      {
+        reduced_train_objects.push_back(p);
       }
-      max_radius[i] = max;
     }
   }
-  vector<bool> classifyObject( const vector<double> &object ) const
+  int classifyObject( const vector<double> &object ) const
   {
-    vector<bool> classifications(this->classes+1, false);  // class 0 is assumed empty
     vector<double> std_object = (object - mean)/std;
-    // vector<double> std_object = object;
-    // cout << "\t\t NEW CLASSIFICATION \t\t" << endl;
-    // cout << "object " << object << endl;
-    // cout << "std_object " << std_object << endl;
-    // cout << "radius " << max_radius << endl;
-    for(const pair<int, vector<double> > &a : std_train_objects)
-    {
-      for(int i=1; i<classes+1; i++)  // class 0 is assumed empty
+    vector< pair<int, vector<double> > > tmp(reduced_train_objects);
+    sort(tmp.begin(), tmp.end(), 
+      [&std_object](const pair<int,vector<double> > &p1, const pair<int,vector<double> > &p2)
       {
-        if( a.first==i and dist(std_object, a.second) < max_radius[i] )
-        {
-          classifications[i]=true;
-        }
-      }
-    }
-    return classifications;
+        return dist(p1.second, std_object) < dist(p2.second, std_object);
+    });
+    return tmp.begin()->first;
   }
 };
 
@@ -308,15 +291,51 @@ int main (int argc, char ** argv)
     out_file.close();
     return -1;
   }
-  OverlappingClassifier myClassifier(train_objects, 3);
-  out_file << "OBJECT CLASS MEMBERSHIP" << endl;
-  out_file << "Obj.nr,\t\tTrue class,\tA1,\tA2,\tA3" << endl;
-  vector<bool> classif;
+  HartAlgorithm myClassifier(train_objects);
+  out_file << "Results of test:" << endl;
+  out_file << "Obj.nr,\t\tTrue class,\t\tAssigned class" << endl;
+  int classification, aciertos=0, i=0;
+  vector<int> test_object_assign_class;
+  vector<vector<int> > confusion_matrix(classes+1, vector<int>(classes+1, 0));
+  vector<vector<double> > pconfusion_matrix(classes+1, vector<double>(classes+1, 0));
+  vector<vector<double> > qconfusion_matrix(classes+1, vector<double>(classes+1, 0));
   for (int i = 0; i < test_objects.size(); ++i) //la conf matrix se puede rellenar aquí
   {
-    classif = myClassifier.classifyObject(test_objects[i].second);
-    out_file << "\t" << i << "\t\t" << test_objects[i].first << "\t" << classif[1] << "\t" << classif[2] << "\t" << classif[3] << endl;
+    test_object_assign_class.push_back( myClassifier.classifyObject(test_objects[i].second) );
+    if( test_object_assign_class[i]==test_objects[i].first ){
+      aciertos++;
+    }
+    confusion_matrix[test_objects[i].first][test_object_assign_class[i]]++;
+    out_file << "\t" << i << "\t\t\t\t" << test_objects[i].first << "\t\t\t\t" << test_object_assign_class[i] << endl;
   }
+  for (int i=1; i < classes+1; i++)
+  {
+    double sum1=0, sum2=0;
+    for (int j=1; j < classes+1; ++j)
+    {
+      sum1 += confusion_matrix[i][j];
+      sum2 += confusion_matrix[j][i];
+    }
+    
+    for (int j=1; j < classes+1; ++j)
+    {
+      pconfusion_matrix[i][j]  = 100*confusion_matrix[i][j]/(double)sum1;
+      qconfusion_matrix[i][j]  = 100*confusion_matrix[j][i]/(double)sum2;
+    }
+
+    // the following 6 lines are for pretty print
+    confusion_matrix[0][i]=i;
+    confusion_matrix[i][0]=i;
+    pconfusion_matrix[0][i]=i;
+    pconfusion_matrix[i][0]=i;
+    qconfusion_matrix[0][i]=i;
+    qconfusion_matrix[i][0]=i;
+  }
+  out_file << endl << "Error rate:\t" << 100*(test_objects.size()-aciertos)/(double)test_objects.size() << "%" << endl;
+  out_file << endl << "Confusion matrix R: " << endl << confusion_matrix << endl;
+  out_file << endl << "Confusion matrix P: " << endl << pconfusion_matrix << endl;
+  out_file << endl << "Confidence matrix Q: " << endl << qconfusion_matrix << endl;
+  // hacer el ouput más bonito
   out_file.close();
   return 0;
 }

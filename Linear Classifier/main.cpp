@@ -9,15 +9,20 @@
 using namespace std;
 
 template <class T>
+ostream& operator<<(ostream& os, const vector<T> &v)
+{
+  for (int i = 0; i < v.size(); ++i)
+  {
+    os << "\t" << v[i] << "\t";
+  }
+  return os;
+}
+template <class T>
 ostream& operator<<(ostream& os, const vector<vector<T> > &v)
 {
   for (int i = 0; i < v.size(); ++i)
   {
-    for (int j = 0; j < v[i].size(); ++j)
-    {
-      os << "\t" << v[i][j] << "\t";
-    }  
-    os << endl;
+    os << v[i] << endl;
   }
   return os;
 }
