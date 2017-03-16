@@ -200,25 +200,32 @@ public:
       std_train_objects.push_back( a.second );
     }
     tmp_ordernation.clear();
+    // changes here! -----------------------------------------------------------------------------------------
     // gen reduced set
+    int last_size;
     reduced_train_objects.push_back( *std_train_objects.begin() );
     std_train_objects.erase( std_train_objects.begin() );
-    for (const pair<int, vector<double> > p : std_train_objects)
+    do
     {
-      // está el más cercano a "p" en el reduced set con la misma clasificación que "p"?????
-      // ordenamos el reduced set por cercanía a "p"
-      sort(reduced_train_objects.begin(), reduced_train_objects.end(), 
-        [&p](const pair<int,vector<double> > &p1, const pair<int,vector<double> > &p2)
-        {
-          return dist(p1.second, p.second) < dist(p2.second, p.second);
-      });
-      // si la clase del más cercano del reduced set es distinta a la clase de "p", añadimos "p" al reduced set
-      if( reduced_train_objects.begin()->first != p.first )
+      last_size = reduced_train_objects.size();
+      for (auto it = std_train_objects.begin(); it!=std_train_objects.end(); ++it)
       {
-        reduced_train_objects.push_back(p);
+        // está el más cercano a "p" en el reduced set con la misma clasificación que "p"?????
+        // ordenamos el reduced set por cercanía a "p"
+        sort(reduced_train_objects.begin(), reduced_train_objects.end(), 
+          [&it](const pair<int,vector<double> > &p1, const pair<int,vector<double> > &p2)
+          {
+            return dist(p1.second, it->second) < dist(p2.second, it->second);
+        });
+        // si la clase del más cercano del reduced set es distinta a la clase de "p", añadimos "p" al reduced set
+        if( reduced_train_objects.begin()->first != it->first )
+        {
+          reduced_train_objects.push_back(*it);
+          it = std_train_objects.erase(it);
+        }
       }
     }
-    // changes here! -----------------------------------------------------------------------------------------
+    while(last_size != reduced_train_objects.size());
   }
   int classifyObject( const vector<double> &object ) const
   {

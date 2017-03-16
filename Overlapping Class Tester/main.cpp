@@ -146,7 +146,7 @@ double dist(const vector<T> &v1, const vector<T> &v2)
 {
   return sqrt(reduce( (v1-v2)*(v1-v2) ));
 }
-class OverlappingClassifier
+class OverlappingTester
 {
 private:
   vector<double> std;  //
@@ -155,20 +155,18 @@ private:
   vector<double> max_radius;
   vector<pair <int, vector<double> > > std_train_objects;
 public:
-  OverlappingClassifier(vector<pair<int, vector<double> > > train_objects, unsigned int classes)
+  OverlappingTester(vector<pair<int, vector<double> > > train_objects, unsigned int classes)
   {
     this->classes = classes;
     this->mean = multidimensionalMean(train_objects);
     this->std = multidimensionalStd(train_objects);
     vector<vector<vector<double> > > tmp_class_points(classes+1); // assum class 0 is empty
-    // this->std_train_objects = train_objects;
     vector<double> tmp;
     for (const pair<int, vector<double> > &it : train_objects)
     {
       tmp = (it.second - mean)/std;
       this->std_train_objects.push_back( make_pair(it.first, tmp) );
       tmp_class_points[ it.first ].push_back( tmp );
-      // tmp_class_points[ it.first ].push_back( it.second );
     }
     double max, tmp_dist;
     this->max_radius.resize(classes+1); // class 0 is assumed empty
@@ -180,7 +178,6 @@ public:
         for (int k = 0; k < j; ++k)
         {
           tmp_dist = dist(tmp_class_points[i][j], tmp_class_points[i][k]);
-          // cout << "class " << i << " " << tmp_dist << endl;
           if(tmp_dist >= max)
           {
             max = tmp_dist;
@@ -190,15 +187,10 @@ public:
       max_radius[i] = max;
     }
   }
-  vector<bool> classifyObject( const vector<double> &object ) const
+  vector<bool> test( const vector<double> &object ) const
   {
     vector<bool> classifications(this->classes+1, false);  // class 0 is assumed empty
     vector<double> std_object = (object - mean)/std;
-    // vector<double> std_object = object;
-    // cout << "\t\t NEW CLASSIFICATION \t\t" << endl;
-    // cout << "object " << object << endl;
-    // cout << "std_object " << std_object << endl;
-    // cout << "radius " << max_radius << endl;
     for(const pair<int, vector<double> > &a : std_train_objects)
     {
       for(int i=1; i<classes+1; i++)  // class 0 is assumed empty
@@ -241,21 +233,19 @@ vector<double> stringToDoubleVector(const string &line, char sep=' ')
 
 int main (int argc, char ** argv) 
 {
-  if(argc < 4){
+  if(argc < 3){
     cerr << "You must supply three arguments: " << endl;
     cerr << "\t1. Path to a file with the train set" << endl;
-    cerr << "\t2. Path to a file with the test set" << endl;
-    cerr << "\t3. Path to the output file" << endl;
-    cerr << "Example: ./main.out train_set.txt test_set.txt output_file.txt" << endl;
+    cerr << "\t2. Path to the output file" << endl;
+    cerr << "Example: ./main.out train_set.txt output_file.txt" << endl;
     return -1;
   }
   string line;
   vector<double> values;
-  vector<pair<int, vector<double> > > train_objects, test_objects;
-  int classes=0, features=0, train_num_objects=0, test_num_objects=0;
+  vector<pair<int, vector<double> > > train_objects;
+  int classes=0, features=0, train_num_objects=0;
   ifstream train_data (argv[1]);
-  ifstream test_data (argv[2]);
-  ofstream out_file (argv[3]);
+  ofstream out_file (argv[2]);
   out_file << setprecision(4) << fixed;
 
   if ( train_data.is_open() )
@@ -280,39 +270,31 @@ int main (int argc, char ** argv)
     return -1;
   }
   
-  if ( test_data.is_open() )
-  {
-    getline (test_data,line);
-    values = stringToDoubleVector(line);
-    if( values[0] != classes or values[1] != features)
-    {
-      cerr << "File "<< argv[2] <<" is malformed, wrong number of classes or features" << endl;
-      return -1;
-    }
-    test_num_objects = values[2];
-    for(int i=0; i<test_num_objects; i++)
-    {
-      getline (test_data,line);
-      values = stringToDoubleVector(line);
-      test_objects.push_back( make_pair(values[0], vector<double> (values.begin()+1, values.end()) ) );
-    }
-    test_data.close();
-  }
-  else
-  {
-    cerr << "Unable to open " << argv[2];
-    out_file.close();
-    return -1;
-  }
-  OverlappingClassifier myClassifier(train_objects, 3);
+  OverlappingTester myTester(train_objects, classes);
+
   out_file << "OBJECT CLASS MEMBERSHIP" << endl;
   out_file << "Obj.nr,\t\tTrue class,\tA1,\tA2,\tA3" << endl;
-  vector<bool> classif;
-  for (int i = 0; i < test_objects.size(); ++i) //la conf matrix se puede rellenar aquí
+  int overlap = 0;
+  vector<bool> test;
+  vector<int> num_forces ( classes+1, 0 );
+  for (int i = 0; i < train_objects.size(); ++i) //la conf matrix se puede rellenar aquí
   {
-    classif = myClassifier.classifyObject(test_objects[i].second);
-    out_file << "\t" << i << "\t\t" << test_objects[i].first << "\t" << classif[1] << "\t" << classif[2] << "\t" << classif[3] << endl;
+    num_forces[ train_objects[i].first ]++;
+    test = myTester.test(train_objects[i].second);
+    out_file << "\t" << i << "\t\t" << train_objects[i].first << "\t" << test[1] << "\t" << test[2] << "\t" << test[3] << endl;
+    for (int j = 1; j < classes+1; ++j) // assum class 0 is empty
+    {
+      if( train_objects[i].first != j and test[j]==true ) // si no es la clase del objecto "i" y está clasificado como ella
+      {
+        overlap++;
+        break;
+      }
+    }
   }
+  num_forces.erase( num_forces.begin() ); // asum class 0 is empy
+  cout << endl <<"The set contains "<< classes <<" classes, "<< features <<" features and "<< train_num_objects<<" objects." << endl;
+  cout << endl << "Class numerical forces:" << num_forces << endl;
+  cout << endl << "Overlap rate: " <<  overlap/(double)train_num_objects << endl;
   out_file.close();
   return 0;
 }

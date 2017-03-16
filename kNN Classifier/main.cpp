@@ -150,13 +150,15 @@ class kNN
 {
 private:
   unsigned int k;
+  unsigned int classes;
   vector<pair <int, vector<double> > > std_train_objects;
   vector<double> mean; // for standarization purposes
   vector<double> std;  //
 public:
-  kNN(vector<pair<int, vector<double> > > train_objects, unsigned int k)
+  kNN(vector<pair<int, vector<double> > > train_objects, unsigned int k, unsigned int classes)
   {
     this->k = k;
+    this->classes = classes;
     this->mean = multidimensionalMean(train_objects);
     this->std = multidimensionalStd(train_objects);
     for (auto it = train_objects.begin(); it != train_objects.end(); ++it)
@@ -173,7 +175,20 @@ public:
       {
         return dist(p1.second, std_object) < dist(p2.second, std_object);
     });
-    return tmp[k-1].first;
+    vector<int> result(classes+1 ,0); // assum class 0 is empty
+    for(int i=0; i<k; ++i)
+    {
+      result[ tmp[i].first ]++;
+    }
+    int max_index=0;
+    for(int i=1; i<result.size(); ++i)
+    {
+      if( result[i]>result[max_index] )
+      {
+        max_index=i;
+      }
+    }
+    return max_index;
   }
 
 };
@@ -269,7 +284,8 @@ int main (int argc, char ** argv)
     out_file.close();
     return -1;
   }
-  kNN myClassifier(train_objects, 1);
+  int k=3;
+  kNN myClassifier(train_objects, k, classes);
   out_file << "Results of test:" << endl;
   out_file << "Obj.nr,\t\tTrue class,\t\tAssigned class" << endl;
   int classification, aciertos=0, i=0;
