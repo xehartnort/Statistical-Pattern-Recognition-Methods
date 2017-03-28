@@ -7,7 +7,7 @@ FILENAMES = $(wildcard *.cpp)
 OUTFILE=main.out
 
 all: build
-	./$(OUTFILE) $(ARGS) && cat out_file.txt
+	./$(OUTFILE) $(ARGS)
 test: build
 	./$(OUTFILE) $(TESTARGS) && cat out_file.txt	
 build:

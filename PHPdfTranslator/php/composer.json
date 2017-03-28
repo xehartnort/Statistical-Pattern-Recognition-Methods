@@ -1,0 +1,6 @@
+{
+    "require": {
+		"smalot/pdfparser": "*",
+        "stichoza/google-translate-php": "^3.2"
+    }
+}

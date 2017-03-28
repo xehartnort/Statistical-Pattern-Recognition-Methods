@@ -284,7 +284,7 @@ int main (int argc, char ** argv)
     out_file.close();
     return -1;
   }
-  int k=3;
+  int k=1;
   kNN myClassifier(train_objects, k, classes);
   out_file << "Results of test:" << endl;
   out_file << "Obj.nr,\t\tTrue class,\t\tAssigned class" << endl;

@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <cmath>
-#include <unordered_map>
 
 using namespace std;
 
@@ -13,7 +12,7 @@ ostream& operator<<(ostream& os, const vector<T> &v)
 {
   for (int i = 0; i < v.size(); ++i)
   {
-    os << "\t" << v[i] << "\t";
+    os << "\t" << v[i];
   }
   return os;
 }
@@ -30,68 +29,41 @@ template <class T>
 vector<T> operator+(const vector<T> &v1, const vector<T> &v2)
 {
   vector<T> result;
-  if ( v1.size()!=v2.size() )
-  {
-    result = v1;
-  }
-  else
-  {
     for(int i=0; i<v1.size(); i++)
     {
       result.push_back( v1[i]+v2[i] );
     }
-  }
   return result;
 }
 template <class T>
 vector<T> operator-(const vector<T> &v1, const vector<T> &v2)
 {
   vector<T> result;
-  if ( v1.size()!=v2.size() )
-  {
-    result = v1;
-  }
-  else
-  {
+
     for(int i=0; i<v1.size(); i++)
     {
       result.push_back( v1[i]-v2[i] );
     }
-  }
   return result;
 }
 template <class T>
 vector<T> operator*(const vector<T> &v1, const vector<T> &v2)
 {
   vector<T> result;
-  if ( v1.size()!=v2.size() )
-  {
-    result = v1;
-  }
-  else
-  {
     for(int i=0; i<v1.size(); i++)
     {
       result.push_back( v1[i]*v2[i] );
     }
-  }
   return result;
 }
 template <class T>
 vector<T> operator/(const vector<T> &v1, const vector<T> &v2)
 {
   vector<T> result;
-  if ( v1.size()!=v2.size() )
-  {
-    result = v1;
-  }
-  else
-  {
     for(int i=0; i<v1.size(); i++)
     {
       result.push_back( v1[i]/v2[i] );
     }
-  }
   return result;
 }
 template <class T>
@@ -105,30 +77,32 @@ vector<T> sqrt(const vector<T> &v1)
   return result;
 }
 template <class T>
-vector<T> multidimensionalMean( const vector<vector<T> > &points)
+vector<T> multidimensionalMean( const vector<vector<T> > &points )
 {
   int features = points[0].size();
   vector<T> mean( features, 0 );
   vector<T> points_size( features, points.size() );
-  for(int i = 0; i < points.size(); i++){
+  for(int i = 0; i < points.size(); i++)
+  {
       mean =  mean + points[i]; 
   }
   mean = mean / points_size;
   return mean;
 }
 template <class T>
-vector<T> multidimensionalStd( const vector<vector<T> > &points)
+vector<T> multidimensionalStd( const vector<vector<T> > &points )
 {
   int features = points[0].size();
   vector<T> mean = multidimensionalMean(points);
-  vector<T> points_size( features, points.size());
+  vector<T> points_size( features, points.size() );
   vector<T> sum_squared( features, 0 );
   for (int i = 0; i < points.size(); ++i)
   {
-    sum_squared = sum_squared + (points[i]-mean)*(points[i]-mean);
+    sum_squared = sum_squared + points[i]*points[i];
   }
-  return sqrt(sum_squared/points_size);
-}  
+  return sqrt( sum_squared/points_size - mean*mean );
+} 
+
 template <class T>
 T reduce(const vector<T> & point)
 {
@@ -145,6 +119,8 @@ class LinearClassifier
 private:
   int classes;
   int features;
+  vector<double> mean;
+  vector<double> std;
   vector<int> train_objects_class;
   vector<vector<double> > train_objects;
   vector<vector<double> > gravity_points;
@@ -164,26 +140,21 @@ public:
     {
       tmp_class_points[ train_objects_class[i] ].push_back(train_objects[i]);
     }
-    for(int i=1; i<tmp_class_points.size(); i++){
+    for(int i=1; i<classes+1; i++)
+    {
       this->gravity_points.push_back( multidimensionalMean(tmp_class_points[i]) );
     }
-    vector<double> mean = multidimensionalMean(this->train_objects);
-    vector<double> std = multidimensionalStd(this->train_objects);
+    this->mean = multidimensionalMean(this->train_objects);
+    this->std = multidimensionalStd(this->train_objects);
     vector<double> gmean = multidimensionalMean(this->gravity_points);
-    vector<double> gstd = multidimensionalStd(this->gravity_points);
-    // for (int i = 0; i < features; ++i)
-    // {
-    //   cout << "gmean["<<i<<"] " << gmean[i] << endl;
-    //   cout << "gstd["<<i<<"] " << gstd[i] << endl; 
-    // }
-    
-    vector<double> twos( features, 2 );
+    vector<double> gstd = multidimensionalStd(this->gravity_points); 
+    vector<double> twos( features, 2.0 );
     for (int i = 0; i < classes; ++i)
     {
-      this->std_gravity_points.push_back( (this->gravity_points[i] - gmean) / gstd );
+      this->std_gravity_points.push_back( (this->gravity_points[i]-gmean)/gstd );
       this->weights.push_back( std_gravity_points[i]*twos );
-      this->std_weights.push_back( weights[i] / std );
-      this->std_residual_weights.push_back( reduce(std_weights[i]*mean) + reduce(std_gravity_points[i]*std_gravity_points[i]) );
+      this->std_weights.push_back( std_gravity_points[i]*twos/std );
+      this->std_residual_weights.push_back( reduce(twos*std_gravity_points[i]*mean/std) + reduce(std_gravity_points[i]*std_gravity_points[i]) );
     }
   }
   vector<vector<double> > getGravityPoints() const
@@ -204,11 +175,12 @@ public:
   }
   int classifyObject( const vector<double> &object ) const
   {
+    vector<double> std_object = object;
     int classification=1;
-    double current_value, max=reduce(std_weights[0]*object) - std_residual_weights[0];
+    double current_value, max=reduce(std_weights[0]*std_object) - std_residual_weights[0];
     for(int i=0; i<classes; i++)
     {
-      current_value = reduce(std_weights[i]*object) - std_residual_weights[i];
+      current_value = reduce(std_weights[i]*std_object) - std_residual_weights[i];
       if( current_value>=max )
       {
         classification = i+1;
@@ -264,7 +236,7 @@ int main (int argc, char ** argv)
   ifstream train_data (argv[1]);
   ifstream test_data (argv[2]);
   ofstream out_file (argv[3]);
-  out_file << setprecision(4) << fixed;
+  out_file << setprecision(3) << fixed;
 
   if ( train_data.is_open() )
   {
@@ -340,7 +312,7 @@ int main (int argc, char ** argv)
       aciertos++;
     }
     confusion_matrix[test_objects_real_class[i]][test_object_assign_class[i]]++;
-    out_file << "\t" << i << "\t\t\t\t" << test_objects_real_class[i] << "\t\t\t\t" << test_object_assign_class[i] << endl;
+    out_file << "\t" << i << "\t\t" << test_objects_real_class[i] << "\t\t\t" << test_object_assign_class[i] << endl;
   }
   for (int i=1; i < classes+1; i++)
   {
@@ -357,7 +329,7 @@ int main (int argc, char ** argv)
       qconfusion_matrix[i][j]  = 100*confusion_matrix[j][i]/(double)sum2;
     }
 
-    // the following 6 lines are for pretty print
+    // the following 6 lines are for pretty printing
     confusion_matrix[0][i]=i;
     confusion_matrix[i][0]=i;
     pconfusion_matrix[0][i]=i;
