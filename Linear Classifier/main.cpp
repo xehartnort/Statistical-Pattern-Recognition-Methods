@@ -146,15 +146,13 @@ public:
     }
     this->mean = multidimensionalMean(this->train_objects);
     this->std = multidimensionalStd(this->train_objects);
-    vector<double> gmean = multidimensionalMean(this->gravity_points);
-    vector<double> gstd = multidimensionalStd(this->gravity_points); 
     vector<double> twos( features, 2.0 );
     for (int i = 0; i < classes; ++i)
     {
-      this->std_gravity_points.push_back( (this->gravity_points[i]-gmean)/gstd );
+      this->std_gravity_points.push_back( (this->gravity_points[i]-mean)/std );
       this->weights.push_back( std_gravity_points[i]*twos );
       this->std_weights.push_back( std_gravity_points[i]*twos/std );
-      this->std_residual_weights.push_back( reduce(twos*std_gravity_points[i]*mean/std) + reduce(std_gravity_points[i]*std_gravity_points[i]) );
+      this->std_residual_weights.push_back( -2*reduce(std_gravity_points[i]*mean/std) - reduce(std_gravity_points[i]*std_gravity_points[i]) );
     }
   }
   vector<vector<double> > getGravityPoints() const
@@ -177,10 +175,10 @@ public:
   {
     vector<double> std_object = object;
     int classification=1;
-    double current_value, max=reduce(std_weights[0]*std_object) - std_residual_weights[0];
+    double current_value, max=reduce(std_weights[0]*std_object) + std_residual_weights[0];
     for(int i=0; i<classes; i++)
     {
-      current_value = reduce(std_weights[i]*std_object) - std_residual_weights[i];
+      current_value = reduce(std_weights[i]*std_object) + std_residual_weights[i];
       if( current_value>=max )
       {
         classification = i+1;

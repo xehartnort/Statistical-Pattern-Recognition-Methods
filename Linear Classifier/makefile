@@ -1,5 +1,5 @@
 COMPILER = clang++
-FLAGS = -O2 -std=c++11
+FLAGS = -std=c++11
 DFLAGS = -g -std=c++11
 TESTARGS = ../Data/Basic_Train.txt ../Data/Basic_Test.txt out_file.txt
 ARGS = ../Data/Train.txt ../Data/Test.txt out_file.txt
