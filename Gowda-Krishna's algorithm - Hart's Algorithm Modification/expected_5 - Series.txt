@@ -1,0 +1,7 @@
+ File to be reduced - Gowda-Krishna algorithm: Train.txt
+
+ nz,lre = 38  1
+ nz,lre = 45  2
+ nz,lre = 45  3
+ nz = 45
+
