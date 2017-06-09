@@ -169,8 +169,8 @@ public:
       tmp_class_points[ it.first ].push_back( tmp );
     }
     double max, tmp_dist;
-    this->max_radius.resize(classes+1); // class 0 is assumed empty
-    for (int i = 1; i < classes+1; ++i)  // class 0 is assumed empty
+    this->max_radius.resize(classes+1); // class 0 is assumed to be empty
+    for (int i = 1; i < classes+1; ++i)  // class 0 is assumed to be empty
     {
       max = 0;
       for(int j = 0; j < tmp_class_points[i].size(); ++j)
@@ -195,7 +195,7 @@ public:
     {
       for(int i=1; i<classes+1; i++)  // class 0 is assumed empty
       {
-        if( a.first==i and dist(std_object, a.second) < max_radius[i] )
+        if( a.first==i and dist(std_object, a.second) <= max_radius[i] )
         {
           classifications[i]=true;
         }
