@@ -194,6 +194,12 @@ public:
     }
     while(last_size != reduced_train_objects.size());
   }
+
+  vector<pair <int, vector<double> > > getReducedSet() const
+  {
+    return reduced_train_objects;
+  }
+
   int classifyObject( const vector<double> &object ) const
   {
     vector<double> std_object = (object - mean)/std;
@@ -342,7 +348,12 @@ int main (int argc, char ** argv)
   out_file << endl << "Confusion matrix R: " << endl << confusion_matrix << endl;
   out_file << endl << "Confusion matrix P: " << endl << pconfusion_matrix << endl;
   out_file << endl << "Confidence matrix Q: " << endl << qconfusion_matrix << endl;
-  // hacer el ouput más bonito
+  vector<pair <int, vector<double> > > reducedset = myClassifier.getReducedSet();
+  out_file << endl << "Reduced set: " << endl;
+  for (const pair<int, vector<double> > &p : reducedset)
+  {
+    out_file << p.first << "\t"<< p.second << endl;
+  }
   out_file.close();
   return 0;
 }

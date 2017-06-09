@@ -1,0 +1,8 @@
+ File to be reduced by Hart algorithm: Train.txt
+
+ nz,lre = 33  1
+ nz,lre = 44  2
+ nz,lre = 45  3
+ nz,lre = 45  4
+ nz = 45
+
