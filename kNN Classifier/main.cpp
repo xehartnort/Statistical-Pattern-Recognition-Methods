@@ -327,8 +327,8 @@ int main (int argc, char ** argv)
   }
   out_file << endl << "Error rate:\t" << 100*(test_objects.size()-aciertos)/(double)test_objects.size() << "%" << endl;
   out_file << endl << "Confusion matrix R: " << endl << confusion_matrix << endl;
-  out_file << endl << "Confusion matrix P: " << endl << pconfusion_matrix << endl;
-  out_file << endl << "Confidence matrix Q: " << endl << qconfusion_matrix << endl;
+  out_file << endl << "Confusion matrix P (Probabilities a priori): " << endl << pconfusion_matrix << endl;
+  out_file << endl << "Confidence matrix Q (Probabilities a posteriori): " << endl << qconfusion_matrix << endl;
   // hacer el ouput más bonito
   out_file.close();
   return 0;
